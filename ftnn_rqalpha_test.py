@@ -2,6 +2,8 @@ from rqalpha.api import *
 from openft.open_quant_context import *
 # 在这个方法中编写任何的初始化逻辑。context对象将会在你的算法策略的任何方法之间做传递。
 import talib
+import pandas as pd
+import numpy
 
 def _example_history_kline(quote_ctx):
     """
@@ -43,7 +45,7 @@ def _example_history_kline(quote_ctx):
 # 在这个方法中编写任何的初始化逻辑。context对象将会在你的算法策略的任何方法之间做传递。
 def init(context):
     # 在context中保存全局变量
-    context.s1 = "000001.XSHE"
+    context.s1 = "HK.00700"#002186.XSHE
     context.dateoffset = 0
     # 设置这个策略当中会用到的参数，在策略中可以随时调用，这个策略使用长短均线，我们在这里设定长线和短线的区间，在调试寻找最佳区间的时候只需要在这里进行数值改动
     context.SHORTPERIOD = 20
@@ -52,14 +54,18 @@ def init(context):
     #print(orderid.dtypes)
     #print(orderid[['order_book_id', 'symbol']].head(10))
 
-    context.quote_context = OpenQuoteContext(host='119.29.141.202', port=11111)
+    #context.quote_context = OpenQuoteContext(host='127.0.0.1', port=11111)#119.29.141.202
     # 获取推送数据
-    context.quote_context.subscribe('HK.00700', "QUOTE", push=True)
+    #context.quote_context.subscribe('HK.00700', "QUOTE", push=True)
     #quote_context.set_handler(_example_history_kline(quote_context))
-    ret_code, context.kline_table = context.quote_context.get_history_kline("HK.00700", start='2014-01-01', end='2017-01-01', ktype='K_DAY',
-                                                     autype='qfq')
-    context.quote_context.start()
-    print(context.kline_table['close'].head(10))
+    #ret_code, context.kline_table = context.quote_context.get_stock_basicinfo("US", stock_type='STOCK')
+    #ret_code, context.kline_table = context.quote_context.get_history_kline("HK.00700", start='2000-01-01', end='2017-06-01', ktype='K_DAY',
+    #                                                 autype='qfq')
+    context.kline_table = pd.read_csv('XAUUSD_d.csv')
+
+    #context.quote_context.start()
+    #print(context.kline_table.dtypes)
+    #context.kline_table.to_csv('US_codelist.csv')
     #print(context.kline_table[['code', 'close']].head(10))
 
 # before_trading此函数会在每天策略交易开始前被调用，当天只会被调用一次
@@ -68,24 +74,24 @@ def before_trading(context):
 
 # 你选择的证券的数据更新将会触发此段逻辑，例如日或分钟历史数据切片或者是实时数据切片更新
 def handle_bar(context, bar_dict):
-
+    #pass
+    #'''
     # 因为策略需要用到均线，所以需要分拆历史数据
     prices = context.kline_table.loc[context.dateoffset:context.dateoffset+context.LONGPERIOD+1, ['close']].T.values[0]
-    ++context.dateoffset
     #pricesX = history_bars(context.s1, context.LONGPERIOD+1, '1d', 'close')
     #current_snapshot(context.s1)
     #orderid = all_instruments('FenjiA')
     #print(orderid)
-    print(prices[0])
+    #print(prices)
     #print(pricesX)
     # 使用talib计算长短两根均线，均线以array的格式表达
     short_avg = talib.SMA(prices, context.SHORTPERIOD)
     long_avg = talib.SMA(prices, context.LONGPERIOD)
-    mid_avg = talib.SMA(prices, 55)
+    #mid_avg = talib.SMA(prices, 55)
 
-    plot("short avg", short_avg[-1])
-    plot("long avg", long_avg[-1])
-    plot("mid avg", mid_avg[-1])
+    #plot("short avg", short_avg[-1])
+    #plot("long avg", long_avg[-1])
+    #plot("mid avg", mid_avg[-1])
     plot("prices", prices[-1])
 
     # 计算现在portfolio中股票的仓位
@@ -103,6 +109,8 @@ def handle_bar(context, bar_dict):
         # 满仓入股
         order_shares(context.s1, shares)
 
+    context.dateoffset += 1
+    #'''
 # after_trading函数会在每天交易结束后被调用，当天只会被调用一次
 def after_trading(context):
     pass
